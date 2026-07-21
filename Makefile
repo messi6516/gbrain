@@ -6,7 +6,6 @@
 # Chat:       openai:deepseek-v4-flash via https://opencode.ai/zen/go/v1
 #
 # Secrets are loaded from .env file if present (keeps keys out of shell history).
-# Run `make env` to scaffold one.
 
 DB_URL       := postgresql://trading:82790086@localhost:5432/gbrain
 PID_FILE     := /tmp/gbrain-serve.pid
@@ -30,8 +29,9 @@ GBRAIN_ENV  := GBRAIN_DATABASE_URL=$(DB_URL)
 GBRAIN_ENV  += ZEROENTROPY_API_KEY=$(ZE_KEY)
 GBRAIN_ENV  += OPENAI_API_KEY=$(OPENAI_KEY)
 GBRAIN_ENV  += OPENAI_BASE_URL=$(OPENAI_BASE)
+GBRAIN_ENV  += GBRAIN_FTS_LANGUAGE=chinese
 
-.PHONY: build deploy install restart serve serve-http stop status doctor models embed-config env help sync
+.PHONY: build deploy install restart serve serve-http stop status doctor models embed-config help sync
 
 ##@ Build
 
@@ -142,14 +142,6 @@ embed-config:
 	$(GBRAIN_ENV) gbrain models doctor
 	@echo "✓ OK."
 
-# Scaffold a .env file with the embedded secrets
-env:
-	@test -f .env && { echo "Error: .env already exists. Delete it first."; exit 1; } || true
-	@echo "ZEROENTROPY_API_KEY=$(ZE_KEY)"  > .env
-	@echo "OPENAI_API_KEY=$(OPENAI_KEY)"   >> .env
-	@echo "OPENAI_BASE_URL=$(OPENAI_BASE)" >> .env
-	@echo "✓ .env written (git-ignored by default)."
-
 ##@ Sync
 
 # Sync fork with upstream: fetch, rebase, force-push to origin/dev-chinese
@@ -185,6 +177,4 @@ help:
 	@echo "  make doctor         Full health diagnostics"
 	@echo "  make models         List configured models"
 	@echo "  make models-doctor  1-token probe per model"
-	@echo "  make env            Scaffold .env file"
 	@echo "  make sync           Rebase fork from upstream & push to origin"
-
