@@ -17,11 +17,6 @@ ZE_KEY       ?= ze_qtVb0E5m60m4V1re
 OPENAI_KEY   ?= sk-6YHNlUzCTdufbUc9nrnnXfKdfFs0Yb3j1Gl9W07e4Z8ozDdPdqy1bJrNegt6L02j
 OPENAI_BASE  ?= https://opencode.ai/zen/go/v1
 
-# ---- proxy (Clash Verge, override via env) ----
-HTTPS_PROXY  ?= http://127.0.0.1:7897
-HTTP_PROXY   ?= http://127.0.0.1:7897
-ALL_PROXY    ?= socks5://127.0.0.1:7897
-
 # ---- embedding ----
 EMBED_PROVIDER := zeroentropyai:zembed-1
 EMBED_DIMS     := 1280
@@ -35,20 +30,30 @@ GBRAIN_ENV  := GBRAIN_DATABASE_URL=$(DB_URL)
 GBRAIN_ENV  += ZEROENTROPY_API_KEY=$(ZE_KEY)
 GBRAIN_ENV  += OPENAI_API_KEY=$(OPENAI_KEY)
 GBRAIN_ENV  += OPENAI_BASE_URL=$(OPENAI_BASE)
-GBRAIN_ENV  += https_proxy=$(HTTPS_PROXY)
-GBRAIN_ENV  += http_proxy=$(HTTP_PROXY)
-GBRAIN_ENV  += all_proxy=$(ALL_PROXY)
 
-.PHONY: install update restart serve serve-http stop status doctor models embed-config env help
+.PHONY: build deploy install restart serve serve-http stop status doctor models embed-config env help sync
 
-##@ Main
+##@ Build
 
-# Full install: bun + gbrain init + post-config + health check
-install:
-	@echo "==> Checking prerequisites..."
-	@command -v bun >/dev/null 2>&1 || { echo "Error: bun is not installed. https://bun.sh"; exit 1; }
-	@echo "==> Installing gbrain globally..."
-	bun install -g github:garrytan/gbrain
+# Compile local source → bin/gbrain
+build:
+	@echo "==> Building gbrain from local source..."
+	bash scripts/build-schema.sh
+	bun build --compile --outfile bin/gbrain src/cli.ts
+	@echo "✓ Built bin/gbrain ($(shell bin/gbrain --version 2>/dev/null))"
+
+# Build + replace global binary + restart serve (daily dev loop)
+deploy: build
+	@echo "==> Deploying to PATH..."
+	cp bin/gbrain $(shell which gbrain)
+	@echo "==> Restarting gbrain serve..."
+	$(MAKE) stop 2>/dev/null || true
+	sleep 1
+	$(MAKE) serve
+	@echo "✓ Deployed and restarted."
+
+# First-time setup: deploy + init DB + configure models
+install: deploy
 	@echo "==> Initializing gbrain (embedding: $(EMBED_PROVIDER))..."
 	$(GBRAIN_ENV) gbrain init --non-interactive \
 		--url $(DB_URL) \
@@ -61,25 +66,9 @@ install:
 	@echo "==> Running health check..."
 	$(GBRAIN_ENV) gbrain doctor || true
 	@echo ""
-	@echo "✓ GBrain installed. Next:"
-	@echo "  make serve       - Start MCP server (Claude Code / Codex)"
-	@echo "  make serve-http  - Start HTTP server (remote clients)"
-	@echo "  make status      - Health + process check"
+	@echo "✓ GBrain installed and running."
 
-# Upgrade gbrain + run migrations
-update:
-	@echo "==> Updating gbrain..."
-	bun install -g github:garrytan/gbrain
-	@echo "==> Running pending migrations..."
-	$(GBRAIN_ENV) gbrain upgrade --force-schema --yes || \
-	$(GBRAIN_ENV) gbrain init --migrate-only
-	@echo "==> Post-upgrade health check..."
-	$(GBRAIN_ENV) gbrain doctor
-	@echo "✓ Update complete. Run 'make restart' if serve is running."
-
-# Stop + start
-restart: stop serve
-	@echo "✓ Restart complete."
+##@ Service
 
 ##@ Service
 
@@ -161,6 +150,23 @@ env:
 	@echo "OPENAI_BASE_URL=$(OPENAI_BASE)" >> .env
 	@echo "✓ .env written (git-ignored by default)."
 
+##@ Sync
+
+# Sync fork with upstream: fetch, rebase, force-push to origin/dev-chinese
+sync:
+	@echo "==> Fetching upstream..."
+	git fetch upstream
+	@echo "==> Rebasing dev-chinese onto upstream/master..."
+	@if ! git diff --quiet HEAD; then \
+		echo "Error: working tree has uncommitted changes. Commit or stash them first."; \
+		exit 1; \
+	fi
+	git rebase upstream/master
+	@echo "==> Force-pushing to origin/dev-chinese..."
+	git push origin dev-chinese --force-with-lease
+	@echo "✓ dev-chinese is now up to date with upstream/master"
+
+
 ##@ Help
 
 help:
@@ -169,9 +175,9 @@ help:
 	@echo "  Embedding:  $(EMBED_PROVIDER) ($(EMBED_DIMS)d)"
 	@echo "  Chat:       $(CHAT_MODEL)"
 	@echo ""
-	@echo "  make install       Full install + init"
-	@echo "  make update        Upgrade to latest version"
-	@echo "  make restart       Restart server (stop + start)"
+	@echo "  make build          Compile local source -> bin/gbrain"
+	@echo "  make deploy         Build + replace + restart (daily dev)"
+	@echo "  make install        Deploy + init DB (first-time setup)"
 	@echo "  make serve          Start stdio MCP"
 	@echo "  make serve-http     Start HTTP MCP (port $(HTTP_PORT))"
 	@echo "  make stop           Stop server"
@@ -180,3 +186,5 @@ help:
 	@echo "  make models         List configured models"
 	@echo "  make models-doctor  1-token probe per model"
 	@echo "  make env            Scaffold .env file"
+	@echo "  make sync           Rebase fork from upstream & push to origin"
+
