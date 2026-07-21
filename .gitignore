@@ -49,3 +49,7 @@ test/fixtures/pglite-snapshot.version
 
 # Private brain reports — never check these in (per CLAUDE.md privacy rule)
 reports/network-intelligence/
+diagrams/gbrain-query-flow.excalidraw
+diagrams/gbrain-query-flow.mmd
+diagrams/gbrain-query-flow.png
+diagrams/gbrain-query-flow.svg

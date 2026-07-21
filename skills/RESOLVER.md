@@ -87,6 +87,7 @@ wins; fix the row.
 | "Now what?", "fill my brain", "cold start", "bootstrap my data", "import my data", "what should I import first" | `skills/cold-start/SKILL.md` |
 | "Install gbrain into this agent/harness", "agent workspace bootstrap", "gbrain bootstrap", "wire gbrain hooks", "set up the maintenance sweep" | Run `gbrain bootstrap` (paste-in harness install: hooks + sweep + config). See `docs/guides/bootstrap.md` |
 | "Migrate from Obsidian/Notion/Logseq" | `skills/migrate/SKILL.md` |
+ | "analyze this project", "explore this codebase", "understand architecture", "project onboarding", "refactoring guidance", "migration plan", "business logic analysis", "open source analysis", "what does this project do" | `skills/project-explorer/SKILL.md` |
 | Brain health check, maintenance run | `skills/maintain/SKILL.md` |
 | "Extract links", "build link graph", "populate timeline" | `skills/maintain/SKILL.md` (extraction sections) |
 | "Run dream", "process today's session", "synthesize my conversations", "consolidate yesterday's conversations", "what patterns did you see", "did the dream cycle run" | `skills/maintain/SKILL.md` (dream cycle section) |
