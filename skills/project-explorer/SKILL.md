@@ -34,11 +34,7 @@ tools:
 mutating: true
 writes_pages: true
 writes_to:
-  - domain/
-  - architecture/
-  - workflows/
-  - analysis/
-  - invariants/
+  - _gbrain/
 ---
 
 # Project Explorer — First-Principles Codebase Analysis for Refactoring
@@ -73,7 +69,7 @@ This skill guarantees:
   (domain entities and their meaning), dynamics (data/control flow), constraints
   (invariants, business rules, contracts), and evolution (change history).
 - **Traceable refactoring path.** Every refactoring invariant is documented as a page
-  in `invariants/`, cross-linked to the modules it constrains. Migration steps are
+  in `_gbrain/invariants/`, cross-linked to the modules it constrains. Migration steps are
   timeline entries on the project overview page. Correctness is auditable by checking
   invariant pages against the refactored code.
 - **Continuous accumulation.** Each user question triggers a brain-first check, then
@@ -136,10 +132,10 @@ backfill specific gaps as they arise.
 
 4. **Create the project overview page:**
 
-   Put a page at `_project/overview` in the project source:
+   Put a page at `_gbrain/overview` in the project source:
 
    ```bash
-   gbrain put _project/overview --source <project-slug> \
+   gbrain put _gbrain/overview --source <project-slug> \
      --content "..."
    ```
 
@@ -150,7 +146,7 @@ backfill specific gaps as they arise.
 5. **Create the architecture overview page:**
 
    ```bash
-   gbrain put _project/architecture --source <project-slug> \
+   gbrain put _gbrain/architecture --source <project-slug> \
      --content "..."
    ```
 
@@ -160,12 +156,12 @@ backfill specific gaps as they arise.
 6. **Link the overview pages:**
 
    ```bash
-   gbrain link _project/overview _project/architecture \
+   gbrain link _gbrain/overview _gbrain/architecture \
      --link-type contains --source <project-slug>
    ```
 
 **Deliverable:** A functional gbrain source containing the project code, searchable
-via `query`, plus two anchor pages (`_project/overview`, `_project/architecture`)
+via `query`, plus two anchor pages (`_gbrain/overview`, `_gbrain/architecture`)
 that serve as the entry points for all subsequent phases.
 
 ### Phase 2: Architecture Discovery
@@ -184,7 +180,7 @@ decomposition.
    gbrain query "dependency injection container configuration" --source <project-slug>
    ```
 
-   For each entry point found, create a page at `architecture/entry-<name>` with:
+   For each entry point found, create a page at `_gbrain/architecture/entry-<name>` with:
    - File location (absolute path + line number)
    - What it initializes (modules, connections, middleware)
    - Link to architecture overview via `gbrain link ... --link-type called_by`
@@ -194,7 +190,7 @@ decomposition.
    - Search for its exported API surface: `gbrain query "public API surface of <module-name>" --source <project-slug>`
    - Determine responsibility: what business concern does this module own?
    - Identify cross-module imports: what other modules does it depend on?
-   - Create a page at `architecture/<module-slug>` with:
+   - Create a page at `_gbrain/architecture/<module-slug>` with:
      ```
      ## Responsibility
      {one-paragraph description}
@@ -213,12 +209,12 @@ decomposition.
    - HTTP client calls, database connections, message queue producers/consumers
    - File system reads/writes, environment variable access
    - Third-party API integrations
-   - Create `architecture/external-<system>` pages for each integration point.
+   - Create `_gbrain/architecture/external-<system>` pages for each integration point.
 
 4. **Create the module-dependency index page:**
 
    ```
-   gbrain put _project/module-map --source <project-slug> --content "..."
+   gbrain put _gbrain/module-map --source <project-slug> --content "..."
    ```
 
    Body: a dependency matrix or directed-graph description showing which modules
@@ -259,7 +255,7 @@ differently even if both use the same class name.
 2. **For each domain entity, create a domain page:**
 
    ```
-   gbrain put domain/<entity-name> --source <project-slug> --content "..."
+   gbrain put _gbrain/domain/<entity-name> --source <project-slug> --content "..."
    ```
 
    Body template:
@@ -293,13 +289,13 @@ differently even if both use the same class name.
 3. **Map entity relationships.** For each entity-entity pair found:
 
    ```
-   gbrain link domain/<entity-a> domain/<entity-b> \
+   gbrain link _gbrain/domain/<entity-a> _gbrain/domain/<entity-b> \
      --link-type <aggregates|contains|references|inherits-from|depends-on> \
      --source <project-slug>
    ```
 
    Create aggregate root pages where applicable. For entities that form a lifecycle
-   boundary (aggregate), create an `analysis/bounded-contexts` page that summarizes
+   boundary (aggregate), create an `_gbrain/analysis/bounded-contexts` page that summarizes
    the service boundaries.
 
 4. **Create workflow/process pages.**
@@ -308,7 +304,7 @@ differently even if both use the same class name.
    "report generated"). For each:
 
    ```
-   gbrain put workflows/<flow-name> --source <project-slug> --content "..."
+   gbrain put _gbrain/workflows/<flow-name> --source <project-slug> --content "..."
    ```
 
    Body:
@@ -339,24 +335,24 @@ invariants. Workflows show how the entities interact at runtime.
 supports cross-dimensional queries.
 
 1. **Cross-link pages.** For every domain entity page, add links to:
-   - The module that owns it (`architecture/<module>` with type `owned_by`)
-   - Every workflow where it participates (`workflows/<flow>` with type `used_in`)
-   - The project overview (`_project/overview` with type `part_of`)
+   - The module that owns it (`_gbrain/architecture/<module>` with type `owned_by`)
+   - Every workflow where it participates (`_gbrain/workflows/<flow>` with type `used_in`)
+   - The project overview (`_gbrain/overview` with type `part_of`)
 
    For every module page, add links to:
-   - Each domain entity it owns (`domain/<entity>` with type `owns`)
-   - Its dependency modules (`architecture/<dep>` with type `depends_on`)
-   - External system pages (`architecture/external-<sys>` with type `connects_to`)
+   - Each domain entity it owns (`_gbrain/domain/<entity>` with type `owns`)
+   - Its dependency modules (`_gbrain/architecture/<dep>` with type `depends_on`)
+   - External system pages (`_gbrain/architecture/external-<sys>` with type `connects_to`)
 
 2. **Create analysis synthesis pages** for cross-cutting concerns:
 
    ```
-   analysis/coupling-patterns      -- tight coupling hotspots, circular deps
-   analysis/layer-violations        -- cross-layer dependencies that shouldn't exist
-   analysis/unused-code             -- orphaned modules, dead code paths
-   analysis/testing-strategy        -- test coverage by module, test patterns
-   analysis/configuration-surface   -- env vars, config files, feature flags
-   analysis/tech-debt               -- known issues, workarounds, TODOs from code
+   _gbrain/analysis/coupling-patterns      -- tight coupling hotspots, circular deps
+   _gbrain/analysis/layer-violations        -- cross-layer dependencies that shouldn't exist
+   _gbrain/analysis/unused-code             -- orphaned modules, dead code paths
+   _gbrain/analysis/testing-strategy        -- test coverage by module, test patterns
+   _gbrain/analysis/configuration-surface   -- env vars, config files, feature flags
+   _gbrain/analysis/tech-debt               -- known issues, workarounds, TODOs from code
    ```
 
    These pages are seeded from the code search, then enriched over time via
@@ -376,14 +372,14 @@ supports cross-dimensional queries.
    Run a traversal from the project overview to ensure the graph is connected:
 
    ```
-   gbrain graph _project/overview --source <project-slug> --depth 3
+   gbrain graph _gbrain/overview --source <project-slug> --depth 3
    ```
 
    Review the output. Any page that has zero incoming links from other project
    pages is a gap -- go back and add the missing links.
 
 **Deliverable:** A fully connected knowledge graph. Every page is reachable from
-`_project/overview` via typed edges in 3 or fewer hops. Cross-cutting analyses
+`_gbrain/overview` via typed edges in 3 or fewer hops. Cross-cutting analyses
 are seeded and linked to the relevant modules/entities.
 
 ### Phase 5: Continuous Learning (Interactive / Query-Driven)
@@ -425,16 +421,16 @@ This skill listens for project-specific questions and follows this protocol:
       ```
 
    b. **Create or enrich pages.** Based on findings:
-      - If the answer reveals a new domain entity: create `domain/<entity>` page
-      - If it reveals new module relationships: update `architecture/<module>` page
-      - If it describes a new flow: create `workflows/<flow>` page
-      - If it identifies a new invariant: create `invariants/<name>` page and
+      - If the answer reveals a new domain entity: create `_gbrain/domain/<entity>` page
+      - If it reveals new module relationships: update `_gbrain/architecture/<module>` page
+      - If it describes a new flow: create `_gbrain/workflows/<flow>` page
+      - If it identifies a new invariant: create `_gbrain/invariants/<name>` page and
         link it to the relevant modules
       - Add a timeline entry documenting what was learned:
 
         ```
         gbrain call add_timeline_entry \
-          '{"slug":"_project/overview","date":"YYYY-MM-DD","summary":"Learned: {what was discovered}"}' \
+          '{"slug":"_gbrain/overview","date":"YYYY-MM-DD","summary":"Learned: {what was discovered}"}' \
           --source <project-slug>
         ```
 
@@ -444,7 +440,7 @@ This skill listens for project-specific questions and follows this protocol:
 
 4. **Document knowledge gaps.** If a question genuinely cannot be answered from
    the code alone (e.g., business rationale for a design decision), create an
-   entry at `analysis/knowledge-gaps`:
+   entry at `_gbrain/analysis/knowledge-gaps`:
 
    ```
    - **YYYY-MM-DD** | {unanswered question} | [Source: user query]
@@ -474,7 +470,7 @@ gbrain sources add <project-slug>-target --path <project-dir>
 1. **Create the target architecture overview:**
 
    ```
-   gbrain put _project/architecture --source <project-slug>-target --content "..."
+   gbrain put _gbrain/architecture --source <project-slug>-target --content "..."
    ```
 
    Body: the target architecture in the chosen style (hexagonal, clean architecture,
@@ -489,14 +485,14 @@ gbrain sources add <project-slug>-target --path <project-dir>
 
    For each domain entity that needs to change:
    ```
-   gbrain put domain/<entity> --source <project-slug>-target --content "..."
+   gbrain put _gbrain/domain/<entity> --source <project-slug>-target --content "..."
    ```
    Document what changes, what stays the same, and why.
 
 3. **Link target back to current state:**
 
    ```
-   gbrain link domain/<entity> domain/<entity> \
+   gbrain link _gbrain/domain/<entity> _gbrain/domain/<entity> \
      --link-type evolves-from --source <project-slug>-target
    ```
 
@@ -506,7 +502,7 @@ gbrain sources add <project-slug>-target --path <project-dir>
 #### Step 6b: Document Migration Invariants
 
 Every refactoring has things that must NOT change. These are invariants.
-Create a page per invariant at `invariants/<name>` (in the **current** source):
+Create a page per invariant at `_gbrain/invariants/<name>` (in the **current** source):
 
 ```
 ---
@@ -531,8 +527,8 @@ source_of_truth: <file path or external contract>
 {What goes wrong if this invariant is violated}
 
 ## Cross-references
-- Link to: domain/<entity> (type: constrains)
-- Link to: workflows/<flow> (type: guards)
+- Link to: _gbrain/domain/<entity> (type: constrains)
+- Link to: _gbrain/workflows/<flow> (type: guards)
 ```
 
 **Types of invariants to identify (first-principles breakdown):**
@@ -548,7 +544,7 @@ source_of_truth: <file path or external contract>
 After creating all invariants, verify connectivity:
 
 ```
-gbrain graph _project/overview --source <project-slug> --depth 3
+gbrain graph _gbrain/overview --source <project-slug> --depth 3
 ```
 
 Every invariant page should be reachable from the modules/entities it constrains.
@@ -559,7 +555,7 @@ Every invariant page should be reachable from the modules/entities it constrains
 
    ```
    gbrain query "module boundaries and dependencies" --source <project-slug>
-   gbrain graph _project/overview --source <project-slug> --depth 3
+   gbrain graph _gbrain/overview --source <project-slug> --depth 3
    ```
 
 2. **Define migration phases.** Each phase is a timeline entry on the project
@@ -567,13 +563,13 @@ Every invariant page should be reachable from the modules/entities it constrains
 
    ```
    gbrain call add_timeline_entry \
-     '{"slug":"_project/architecture","date":"YYYY-MM-DD","summary":"Phase N: {brief description}","detail":"{what modules move, what changes, what invariants to check}"}' \
+     '{"slug":"_gbrain/architecture","date":"YYYY-MM-DD","summary":"Phase N: {brief description}","detail":"{what modules move, what changes, what invariants to check}"}' \
      --source <project-slug>-target
    ```
 
 3. **For each phase, identify:**
    - What code moves (specific files, modules)
-   - Which invariants are at risk (link to `invariants/<name>`)
+   - Which invariants are at risk (link to `_gbrain/invariants/<name>`)
    - Verification step (test command, audit query)
    - Rollback criteria
 
@@ -582,13 +578,13 @@ Every invariant page should be reachable from the modules/entities it constrains
    timestamped note:
 
    ```
-   gbrain put architecture/<module> --source <project-slug> \
+   gbrain put _gbrain/architecture/<module> --source <project-slug> \
      --content "(existing content)
 
    ## Refactoring Status
    - Status: migrated to target
    - Migrated: YYYY-MM-DD
-   - Target page: --source <project-slug>-target architecture/<module>"
+   - Target page: --source <project-slug>-target _gbrain/architecture/<module>"
    ```
 
 #### Step 6d: Verify Completeness Before/After Each Phase
@@ -599,7 +595,7 @@ For each migration step, run a completeness check:
 
    ```
    gbrain search "type:invariant" --source <project-slug>
-   gbrain call get_links '{"slug":"architecture/<module>"}' --source <project-slug>
+   gbrain call get_links '{"slug":"_gbrain/architecture/<module>"}' --source <project-slug>
    ```
 
 2. **For each invariant**, read its page and verify the refactored code satisfies it.
@@ -623,7 +619,7 @@ For each migration step, run a completeness check:
 
    ```
    gbrain call add_timeline_entry \
-     '{"slug":"_project/overview","date":"YYYY-MM-DD","summary":"Verification: Phase N {passed/failed} -- {findings}"}' \
+     '{"slug":"_gbrain/overview","date":"YYYY-MM-DD","summary":"Verification: Phase N {passed/failed} -- {findings}"}' \
      --source <project-slug>
    ```
 
@@ -638,7 +634,7 @@ separate output artifact -- the knowledge base IS the output.
 
 For interactive questions (Phase 5), the agent responds in the conversation with:
 - Direct answer to the user's question
-- Citations to the relevant gbrain pages: `[Source: <project>:domain/<entity>]`
+- Citations to the relevant gbrain pages: `[Source: <project>:_gbrain/domain/<entity>]`
 - A brief note on what was learned and enriched (if new pages were created)
 
 For refactoring guidance (Phase 6), the agent presents:

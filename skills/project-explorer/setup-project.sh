@@ -42,8 +42,8 @@ Steps performed:
   1. Detect project metadata (language, build system, package manager)
   2. Create gbrain source: gbrain sources add <slug> --path <dir>
   3. Import source code, docs, and config files
-  4. Create _project/overview page with metadata
-  5. Create _project/architecture page as placeholder for Phase 2
+  4. Create _gbrain/overview page with metadata
+  5. Create _gbrain/architecture page as placeholder for Phase 2
   6. Link overview and architecture pages
   7. Run gbrain doctor to verify health
 EOF
@@ -241,13 +241,13 @@ gbrain query --source $PROJECT_SLUG "core domain entities"
 
 Explore architecture (requires Phase 2 of project-explorer skill):
 \`\`\`bash
-gbrain get _project/architecture --source $PROJECT_SLUG
-gbrain graph _project/overview --source $PROJECT_SLUG --depth 3
+gbrain get _gbrain/architecture --source $PROJECT_SLUG
+gbrain graph _gbrain/overview --source $PROJECT_SLUG --depth 3
 \`\`\`
 EOB
 )
 
-gbrain put _project/overview --source "$PROJECT_SLUG" --content "$OVERVIEW_BODY" 2>/dev/null || echo "    (page may already exist, update skipped)"
+gbrain put _gbrain/overview --source "$PROJECT_SLUG" --content "$OVERVIEW_BODY" 2>/dev/null || echo "    (page may already exist, update skipped)"
 
 # --- Step 7: Create architecture placeholder ---
 echo "==> [7/8] Creating architecture overview placeholder..."
@@ -272,16 +272,16 @@ project: $PROJECT_SLUG
 
 ## Quick links
 
-- [Project overview](_project/overview)
+- [Project overview](_gbrain/overview)
 - Module map: (run Phase 2)
 EOB
 )
 
-gbrain put _project/architecture --source "$PROJECT_SLUG" --content "$ARCH_BODY" 2>/dev/null || echo "    (page may already exist, update skipped)"
+gbrain put _gbrain/architecture --source "$PROJECT_SLUG" --content "$ARCH_BODY" 2>/dev/null || echo "    (page may already exist, update skipped)"
 
 # --- Step 8: Link overview pages ---
 echo "==> [8/8] Linking overview pages..."
-gbrain link _project/overview _project/architecture --link-type contains --source "$PROJECT_SLUG" 2>/dev/null || true
+gbrain link _gbrain/overview _gbrain/architecture --link-type contains --source "$PROJECT_SLUG" 2>/dev/null || true
 
 # --- Final health check ---
 echo ""
@@ -311,7 +311,7 @@ echo "  2. Run Phase 2 (Architecture Discovery):"
 echo "     gbrain think \\"
 echo "       \"map the architecture: entry points, modules, dependencies\" \\"
 echo "       --source $PROJECT_SLUG"
-echo "     gbrain get _project/architecture --source $PROJECT_SLUG"
+echo "     gbrain get _gbrain/architecture --source $PROJECT_SLUG"
 echo ""
 echo "  3. Run Phase 3 (Domain Model Extraction):"
 echo "     gbrain think \\"
