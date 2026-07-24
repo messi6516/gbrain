@@ -241,13 +241,13 @@ gbrain query --source $PROJECT_SLUG "core domain entities"
 
 Explore architecture (requires Phase 2 of project-explorer skill):
 \`\`\`bash
-gbrain get_page --source $PROJECT_SLUG --slug _project/architecture
-gbrain traverse_graph _project/overview --source $PROJECT_SLUG --depth 3
+gbrain get _project/architecture --source $PROJECT_SLUG
+gbrain graph _project/overview --source $PROJECT_SLUG --depth 3
 \`\`\`
 EOB
 )
 
-gbrain put_page --source "$PROJECT_SLUG" --slug _project/overview --body "$OVERVIEW_BODY" 2>/dev/null || echo "    (page may already exist, update skipped)"
+gbrain put _project/overview --source "$PROJECT_SLUG" --content "$OVERVIEW_BODY" 2>/dev/null || echo "    (page may already exist, update skipped)"
 
 # --- Step 7: Create architecture placeholder ---
 echo "==> [7/8] Creating architecture overview placeholder..."
@@ -277,11 +277,11 @@ project: $PROJECT_SLUG
 EOB
 )
 
-gbrain put_page --source "$PROJECT_SLUG" --slug _project/architecture --body "$ARCH_BODY" 2>/dev/null || echo "    (page may already exist, update skipped)"
+gbrain put _project/architecture --source "$PROJECT_SLUG" --content "$ARCH_BODY" 2>/dev/null || echo "    (page may already exist, update skipped)"
 
 # --- Step 8: Link overview pages ---
 echo "==> [8/8] Linking overview pages..."
-gbrain add_link --source "$PROJECT_SLUG" --from _project/overview --to _project/architecture --type contains 2>/dev/null || true
+gbrain link _project/overview _project/architecture --link-type contains --source "$PROJECT_SLUG" 2>/dev/null || true
 
 # --- Final health check ---
 echo ""
@@ -305,27 +305,29 @@ echo ""
 echo "Next steps:"
 echo ""
 echo "  1. Start exploring:"
-echo "     gbrain query --source $PROJECT_SLUG \"what does this project do\""
+echo "     gbrain query \"what does this project do\" --source $PROJECT_SLUG"
 echo ""
 echo "  2. Run Phase 2 (Architecture Discovery):"
-echo "     gbrain think --source $PROJECT_SLUG \\"
-echo "       \"map the architecture: entry points, modules, dependencies\""
-echo "     gbrain get_page --source $PROJECT_SLUG --slug _project/architecture"
+echo "     gbrain think \\"
+echo "       \"map the architecture: entry points, modules, dependencies\" \\"
+echo "       --source $PROJECT_SLUG"
+echo "     gbrain get _project/architecture --source $PROJECT_SLUG"
 echo ""
 echo "  3. Run Phase 3 (Domain Model Extraction):"
-echo "     gbrain think --source $PROJECT_SLUG \\"
-echo "       \"what are the core domain entities and their relationships\""
+echo "     gbrain think \\"
+echo "       \"what are the core domain entities and their relationships\" \\"
+echo "       --source $PROJECT_SLUG"
 echo ""
 echo "  4. Read the full skill:"
 echo "     cat skills/project-explorer/SKILL.md"
 echo ""
 echo "  5. Enrich over time: ask questions and gbrain accumulates:"
-echo "     gbrain query --source $PROJECT_SLUG \"how does the payment flow work\""
+echo "     gbrain query \"how does the payment flow work\" --source $PROJECT_SLUG"
 echo ""
 echo "  6. When ready to refactor, create a target source:"
 echo "     gbrain sources add $PROJECT_SLUG-target --path <project-dir>"
 echo "     # Then read Phase 6 of the skill"
 echo ""
 echo "To verify the source: gbrain sources current --source $PROJECT_SLUG"
-echo "To verify pages:  gbrain search --source $PROJECT_SLUG ''"
+echo "To verify pages:  gbrain search '' --source $PROJECT_SLUG"
 echo "============================================"
