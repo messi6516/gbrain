@@ -53,3 +53,8 @@ diagrams/gbrain-query-flow.excalidraw
 diagrams/gbrain-query-flow.mmd
 diagrams/gbrain-query-flow.png
 diagrams/gbrain-query-flow.svg
+
+# Auto-managed by gbrain (db_only directories)
+media/x/
+media/articles/
+meetings/transcripts/
