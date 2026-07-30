@@ -25,6 +25,7 @@ CHAT_MODEL      := openai:deepseek-v4-flash
 EXPANSION_MODEL := openai:deepseek-v4-flash
 
 # runtime env block passed to every gbrain invocation
+BIN := $(HOME)/.local/bin/gbrain
 GBRAIN_ENV  := GBRAIN_DATABASE_URL=$(DB_URL)
 GBRAIN_ENV  += ZEROENTROPY_API_KEY=$(ZE_KEY)
 GBRAIN_ENV  += OPENAI_API_KEY=$(OPENAI_KEY)
@@ -44,8 +45,9 @@ build:
 
 # Build + replace global binary + restart serve (daily dev loop)
 deploy: build
-	@echo "==> Deploying to PATH..."
-	cp bin/gbrain $(shell which gbrain)
+	@echo "==> Deploying to ~/.local/bin/gbrain..."
+	mkdir -p $(HOME)/.local/bin
+	cp bin/gbrain $(HOME)/.local/bin/gbrain
 	@echo "==> Restarting gbrain serve..."
 	$(MAKE) stop 2>/dev/null || true
 	sleep 1
@@ -55,16 +57,16 @@ deploy: build
 # First-time setup: deploy + init DB + configure models
 install: deploy
 	@echo "==> Initializing gbrain (embedding: $(EMBED_PROVIDER))..."
-	$(GBRAIN_ENV) gbrain init --non-interactive \
+	$(GBRAIN_ENV) $(BIN) init --non-interactive \
 		--url $(DB_URL) \
 		--embedding-model $(EMBED_PROVIDER) \
 		--embedding-dimensions $(EMBED_DIMS) \
 		--chat-model $(CHAT_MODEL) \
 		--expansion-model $(EXPANSION_MODEL)
 	@echo "==> Setting custom OpenAI base URL..."
-	$(GBRAIN_ENV) gbrain config set provider_base_urls.openai $(OPENAI_BASE)
+	$(GBRAIN_ENV) $(BIN) config set provider_base_urls.openai $(OPENAI_BASE)
 	@echo "==> Running health check..."
-	$(GBRAIN_ENV) gbrain doctor || true
+	$(GBRAIN_ENV) $(BIN) doctor || true
 	@echo ""
 	@echo "✓ GBrain installed and running."
 
@@ -72,31 +74,24 @@ install: deploy
 
 ##@ Service
 
-# Start stdio MCP (local agents: Claude Code / Codex / Cursor)
+# Start HTTP MCP + admin dashboard (background daemon)
 serve:
 	@if [ -f $(PID_FILE) ] && kill -0 $$(cat $(PID_FILE)) 2>/dev/null; then \
 		echo "gbrain serve already running (PID $$(cat $(PID_FILE)))"; \
 	else \
-		echo "==> Starting gbrain serve (stdio MCP)..."; \
-		$(GBRAIN_ENV) nohup gbrain serve > /tmp/gbrain-serve.log 2>&1 & \
+		echo "==> Starting gbrain serve --http on :$(HTTP_PORT)..."; \
+		$(GBRAIN_ENV) nohup $(BIN) serve --http --port $(HTTP_PORT) > /tmp/gbrain-serve.log 2>&1 & \
 		echo $$! > $(PID_FILE); \
-		echo "✓ Started (PID $$(cat $(PID_FILE)))"; \
-		echo "  Logs: tail -f /tmp/gbrain-serve.log"; \
+		sleep 2; \
+		echo "✓ HTTP server started (PID $$(cat $(PID_FILE)))"; \
+		echo "  Admin:    http://localhost:$(HTTP_PORT)/admin"; \
+		echo "  MCP:      http://localhost:$(HTTP_PORT)/mcp"; \
+		echo "  Health:   http://localhost:$(HTTP_PORT)/health"; \
+		echo "  Logs:     tail -f /tmp/gbrain-serve.log"; \
 	fi
 
-# Start HTTP MCP + admin dashboard
-serve-http:
-	@if [ -f $(PID_FILE) ] && kill -0 $$(cat $(PID_FILE)) 2>/dev/null; then \
-		echo "Server already running (PID $$(cat $(PID_FILE))). Run: make stop"; \
-		exit 1; \
-	fi
-	@echo "==> Starting gbrain serve --http on :$(HTTP_PORT)..."
-	$(GBRAIN_ENV) nohup gbrain serve --http --port $(HTTP_PORT) > /tmp/gbrain-serve.log 2>&1 & \
-	echo $$! > $(PID_FILE); \
-	echo "✓ HTTP server started (PID $$(cat $(PID_FILE)))"; \
-	echo "  MCP:      http://localhost:$(HTTP_PORT)/mcp"; \
-	echo "  Admin:    http://localhost:$(HTTP_PORT)/admin"; \
-	echo "  Logs:     tail -f /tmp/gbrain-serve.log"
+# Start HTTP MCP + admin dashboard (alternate name)
+serve-http: serve
 
 # Stop the server
 stop:
@@ -123,23 +118,23 @@ status:
 		echo "  gbrain serve:  not running"; \
 	fi
 	@echo "=== Database ==="
-	@$(GBRAIN_ENV) gbrain doctor 2>&1 || true
+	@$(GBRAIN_ENV) $(BIN) doctor 2>&1 || true
 
 doctor:
-	$(GBRAIN_ENV) gbrain doctor
+	$(GBRAIN_ENV) $(BIN) doctor
 
 models:
-	$(GBRAIN_ENV) gbrain models
+	$(GBRAIN_ENV) $(BIN) models
 
 models-doctor:
-	$(GBRAIN_ENV) gbrain models doctor
+	$(GBRAIN_ENV) $(BIN) models doctor
 
 ##@ Setup helpers
 
 # Validate embedding + chat models with a 1-token probe
 embed-config:
 	@echo "==> Probing embedding model ($(EMBED_PROVIDER))..."
-	$(GBRAIN_ENV) gbrain models doctor
+	$(GBRAIN_ENV) $(BIN) models doctor
 	@echo "✓ OK."
 
 ##@ Sync
