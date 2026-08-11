@@ -41,6 +41,7 @@ build:
 	@echo "==> Building gbrain from local source..."
 	bash scripts/build-schema.sh
 	bun build --compile --outfile bin/gbrain src/cli.ts
+	codesign --force --sign - bin/gbrain
 	@echo "✓ Built bin/gbrain ($(shell bin/gbrain --version 2>/dev/null))"
 
 # Build + replace global binary + restart serve (daily dev loop)
@@ -82,12 +83,27 @@ serve:
 		echo "==> Starting gbrain serve --http on :$(HTTP_PORT)..."; \
 		$(GBRAIN_ENV) nohup $(BIN) serve --http --port $(HTTP_PORT) > /tmp/gbrain-serve.log 2>&1 & \
 		echo $$! > $(PID_FILE); \
-		sleep 2; \
-		echo "✓ HTTP server started (PID $$(cat $(PID_FILE)))"; \
-		echo "  Admin:    http://localhost:$(HTTP_PORT)/admin"; \
-		echo "  MCP:      http://localhost:$(HTTP_PORT)/mcp"; \
-		echo "  Health:   http://localhost:$(HTTP_PORT)/health"; \
-		echo "  Logs:     tail -f /tmp/gbrain-serve.log"; \
+		OK=0; \
+		for i in 1 2 3 4 5 6 7 8 9 10; do \
+			sleep 1; \
+			if [ -f $(PID_FILE) ] && kill -0 $$(cat $(PID_FILE)) 2>/dev/null && curl -sf -m 2 http://localhost:$(HTTP_PORT)/health >/dev/null 2>&1; then \
+				OK=1; break; \
+			fi; \
+			if ! kill -0 $$(cat $(PID_FILE)) 2>/dev/null; then \
+				echo "✗ gbrain serve died during startup. See: tail -f /tmp/gbrain-serve.log"; \
+				exit 1; \
+			fi; \
+		done; \
+		if [ "$$OK" = "1" ]; then \
+			echo "✓ HTTP server started (PID $$(cat $(PID_FILE)))"; \
+			echo "  Admin:    http://localhost:$(HTTP_PORT)/admin"; \
+			echo "  MCP:      http://localhost:$(HTTP_PORT)/mcp"; \
+			echo "  Health:   http://localhost:$(HTTP_PORT)/health"; \
+			echo "  Logs:     tail -f /tmp/gbrain-serve.log"; \
+		else \
+			echo "✗ HTTP server did not become healthy on :$(HTTP_PORT). See: tail -f /tmp/gbrain-serve.log"; \
+			exit 1; \
+		fi; \
 	fi
 
 # Start HTTP MCP + admin dashboard (alternate name)
@@ -95,17 +111,26 @@ serve-http: serve
 
 # Stop the server
 stop:
-	@if [ -f $(PID_FILE) ] && kill -0 $$(cat $(PID_FILE)) 2>/dev/null; then \
-		echo "==> Stopping gbrain serve (PID $$(cat $(PID_FILE)))..."; \
-		kill $$(cat $(PID_FILE)) 2>/dev/null || true; \
+	@PID=$$(cat $(PID_FILE) 2>/dev/null); \
+	if [ -n "$$PID" ] && kill -0 "$$PID" 2>/dev/null; then \
+		echo "==> Stopping gbrain serve (PID $$PID)..."; \
+		kill "$$PID" 2>/dev/null || true; \
 		sleep 1; \
-		kill -0 $$(cat $(PID_FILE)) 2>/dev/null && kill -9 $$(cat $(PID_FILE)) 2>/dev/null || true; \
-		rm -f $(PID_FILE); \
+		kill -0 "$$PID" 2>/dev/null && kill -9 "$$PID" 2>/dev/null || true; \
 		echo "✓ Stopped."; \
 	else \
-		echo "No running gbrain serve process."; \
-		rm -f $(PID_FILE); \
-	fi
+		PORT_PID=$$(lsof -ti tcp:$(HTTP_PORT) -sTCP:LISTEN 2>/dev/null); \
+		if [ -n "$$PORT_PID" ]; then \
+			echo "==> PID file stale; stopping gbrain serve on port $(HTTP_PORT) (PID $$PORT_PID)..."; \
+			kill $$PORT_PID 2>/dev/null || true; \
+			sleep 1; \
+			kill -0 $$PORT_PID 2>/dev/null && kill -9 $$PORT_PID 2>/dev/null || true; \
+			echo "✓ Stopped."; \
+		else \
+			echo "No running gbrain serve process."; \
+		fi; \
+	fi; \
+	rm -f $(PID_FILE)
 
 ##@ Diagnostics
 
